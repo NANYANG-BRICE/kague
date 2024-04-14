@@ -16,6 +16,40 @@ export default function ResetPassword() {
   const [form, setForm] = useState({
     info: '',
   });
+  const [errors, setErrors] = useState({
+    info: '',
+  });
+
+  // Fonction de validation de l'information
+  const validateInfo = (info) => {
+    if (!info) {
+      return 'Info is required';
+    }
+    if (info.length < 9) {
+      return 'Info must be at least 9 characters long';
+    }
+    return '';
+  };
+
+  // Fonction de gestion de la saisie de champ
+  const handleInputChange = (value) => {
+    const error = validateInfo(value);
+    setForm({ ...form, info: value });
+    setErrors({ ...errors, info: error });
+  };
+
+  // Fonction de gestion de la soumission du formulaire
+  const handleSubmit = () => {
+    const error = validateInfo(form.info);
+    if (error) {
+      // Afficher le message d'erreur si le champ n'est pas valide
+      setErrors({ ...errors, info: error });
+    } else {
+      // Soumettre le formulaire ou effectuer d'autres actions
+      navigation.navigate('Login');
+    }
+  };
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F4EFF3' }}>
       <View style={styles.container}>
@@ -27,7 +61,7 @@ export default function ResetPassword() {
           <Text style={styles.title}>Forgot Password?</Text>
 
           <Text style={styles.subtitle}>
-            Enter your registred phone number or email address to receive the password reset instructions.
+            Enter your registered phone number or email address to receive the password reset instructions.
           </Text>
         </View>
 
@@ -37,20 +71,18 @@ export default function ResetPassword() {
               <Text style={styles.inputLabel}>Email address -- or -- Phone number. </Text>
 
               <TextInput
-                onChangeText={info => setForm({ ...form, info })}
+                onChangeText={handleInputChange}
                 placeholder="e.g. johndoe"
                 placeholderTextColor="#6b7280"
                 style={styles.inputControl}
                 value={form.info} />
+              {!!errors.info && <Text style={styles.errorText}>{errors.info}</Text>}
             </View>
 
             <View style={styles.formAction}>
-              <TouchableOpacity
-                onPress={() => {
-                  // handle onPress
-                }}>
+              <TouchableOpacity onPress={handleSubmit}>
                 <View style={styles.btn}>
-                  <Text style={styles.btnText}>Reset Password</Text>
+                  <Text style={styles.btnText}>Reset Password <FeatherIcon color="#FFFFFF" name="refresh-cw" size={18} /></Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -148,6 +180,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     color: '#24262e',
+  },
+  errorText: {
+    color: 'red',
+    marginTop: 4,
   },
   /** Button */
   btn: {

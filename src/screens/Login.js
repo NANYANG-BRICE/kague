@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   SafeAreaView,
@@ -7,7 +7,9 @@ import {
   Text,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
+import RBSheet from 'react-native-raw-bottom-sheet';
 import { useNavigation } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
@@ -22,20 +24,19 @@ export default function Login() {
     email: '',
     password: '',
   });
+  const refRBSheet = useRef(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleEmailChange = (email) => {
-    setForm({ ...form, email }); // Mettre à jour la valeur de l'email dans le formulaire
-    validateEmail(email); // Valider l'email à chaque changement
+    setForm({ ...form, email });
+    validateEmail(email);
   };
 
-  // Fonction de gestion du changement de texte pour le mot de passe
   const handlePasswordChange = (password) => {
-    setForm({ ...form, password }); // Mettre à jour la valeur du mot de passe dans le formulaire
-    validatePassword(password); // Valider le mot de passe à chaque changement
+    setForm({ ...form, password });
+    validatePassword(password);
   };
 
-
-  // Fonction de validation de l'email
   const validateEmail = (email) => {
     if (!email) {
       setErrors(prevState => ({ ...prevState, email: 'Email is required' }));
@@ -49,7 +50,6 @@ export default function Login() {
     return true;
   };
 
-  // Fonction de validation du mot de passe
   const validatePassword = (password) => {
     if (!password) {
       setErrors(prevState => ({ ...prevState, password: 'Password is required' }));
@@ -63,13 +63,29 @@ export default function Login() {
     return true;
   };
 
-  // Fonction de gestion de la soumission du formulaire
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const isEmailValid = validateEmail(form.email);
     const isPasswordValid = validatePassword(form.password);
 
     if (isEmailValid && isPasswordValid) {
-      // Soumettre le formulaire ou effectuer d'autres actions
+      // Show RBSheet
+      setIsLoading(true);
+
+      // Simulate server request
+      try {
+        await new Promise(resolve => setTimeout(resolve, 2500)); // Attendre 5 secondes
+        refRBSheet.current.open(); // Ouvrir refRBSheet après l'attente
+        setForm({ email: '', password: '' }); // Réinitialiser le formulaire
+        setTimeout(() => {
+          navigation.navigate('Dashboard');
+        }, 5000);
+      } catch (error) {
+        // Show alert if server request fails
+        Alert.alert('Server Error', 'Unable to reach the server. Please try again later.');
+      } finally {
+        // Close RBSheet
+        setIsLoading(false);
+      }
     } else {
       Alert.alert('Invalid Form', 'Please correct the highlighted errors');
     }
@@ -82,9 +98,7 @@ export default function Login() {
           <TouchableOpacity onPress={() => { }} style={styles.backBtn}>
             <FeatherIcon color="#FD6B69" name="arrow-left" size={24} />
           </TouchableOpacity>
-
           <Text style={styles.title}>Sign In</Text>
-
           <Text style={styles.subtitle}>
             We emailed a code to{' '}
             <Text style={{ color: '#222' }}>john@example.com</Text>, please
@@ -96,7 +110,6 @@ export default function Login() {
           <View style={styles.form}>
             <View style={styles.input}>
               <Text style={styles.inputLabel}>Email address</Text>
-
               <TextInput
                 onChangeText={handleEmailChange}
                 placeholder="e.g. johndoe"
@@ -108,7 +121,6 @@ export default function Login() {
 
             <View style={styles.input}>
               <Text style={styles.inputLabel}>Password</Text>
-
               <TextInput
                 autoCorrect={false}
                 onChangeText={handlePasswordChange}
@@ -128,7 +140,9 @@ export default function Login() {
             <View style={styles.formAction}>
               <TouchableOpacity onPress={handleSubmit}>
                 <View style={styles.btn}>
-                  <Text style={styles.btnText}>Login</Text>
+                  <Text style={styles.btnText}>
+                    Login <FeatherIcon color="#FFFFFF" name="log-in" size={18} />
+                  </Text>
                 </View>
               </TouchableOpacity>
             </View>
@@ -143,6 +157,41 @@ export default function Login() {
             <Text style={{ textDecorationLine: 'underline', color: '#FE724E' }}>Sign up</Text>
           </Text>
         </TouchableOpacity>
+
+        {/* RBSheet */}
+        <RBSheet
+          ref={refRBSheet}
+          customStyles={{ container: styles.sheet }}
+          height={240}
+          openDuration={250}>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Operation in progress</Text>
+          </View>
+
+          <View style={styles.body}>
+            <Text style={styles.bodyText}>
+              Please wait a few moments.....
+            </Text>
+
+            {/* Affichage du loading */}
+            {isLoading && (
+              <View style={styles.loadingOverlay}>
+                <ActivityIndicator size="large" color="#FD6B68" />
+              </View>
+            )}
+
+            <TouchableOpacity
+              onPress={() => {
+                refRBSheet.current.close();
+              }}>
+              <View style={styles.btnT}>
+                <Text style={styles.btnText}>Cancel</Text>
+              </View>
+            </TouchableOpacity>
+            <View style={styles.bodyGap} />
+          </View>
+        </RBSheet>
+
       </View>
     </SafeAreaView>
   );
@@ -167,8 +216,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#ffdada',
     marginBottom: 16,
+    // marginTop: 16,
   },
-
   title: {
     fontSize: 34,
     fontWeight: 'bold',
@@ -197,7 +246,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
     textDecorationLine: 'underline'
   },
-
   formFooter: {
     fontSize: 15,
     fontWeight: '400',
@@ -205,7 +253,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     letterSpacing: 0.15,
   },
-
   /** Input */
   input: {
     marginBottom: 16,
@@ -246,5 +293,90 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  /** RBSheet */
+  sheet: {
+    borderTopLeftRadius: 14,
+    borderTopRightRadius: 14,
+  },
+  /** Placeholder */
+  placeholder: {
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+    height: 400,
+    marginTop: 0,
+    padding: 24,
+    backgroundColor: 'transparent',
+  },
+  placeholderInset: {
+    borderWidth: 4,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    borderRadius: 9,
+    flexGrow: 1,
+    flexShrink: 1,
+    flexBasis: 0,
+  },
+  /** Header */
+  header: {
+    borderBottomWidth: 1,
+    borderColor: '#efefef',
+    padding: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  /** Body */
+  body: {
+    padding: 24,
+  },
+  bodyText: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '400',
+    color: '#0e0e0e',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  bodyGap: {
+    marginBottom: 12,
+  },
+  /** Button */
+  btnT: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    backgroundColor: '#ff3c2f',
+    borderColor: '#ff3c2f',
+  },
+  btnText: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  btnSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    backgroundColor: 'transparent',
+    borderColor: '#dddce0',
+  },
+  btnSecondaryText: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: '#000',
   },
 });
