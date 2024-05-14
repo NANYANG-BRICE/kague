@@ -13,6 +13,10 @@ import RBSheet from 'react-native-raw-bottom-sheet';
 import { useNavigation } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import CustomAlert from '../components/CustomAlert';
+
+
 
 export default function Login() {
   const navigation = useNavigation();
@@ -67,27 +71,11 @@ export default function Login() {
     const isEmailValid = validateEmail(form.email);
     const isPasswordValid = validatePassword(form.password);
 
-    if (isEmailValid && isPasswordValid) {
-      // Show RBSheet
-      setIsLoading(true);
-
-      // Simulate server request
-      try {
-        await new Promise(resolve => setTimeout(resolve, 2500)); // Attendre 5 secondes
-        refRBSheet.current.open(); // Ouvrir refRBSheet après l'attente
-        setForm({ email: '', password: '' }); // Réinitialiser le formulaire
-        setTimeout(() => {
-          navigation.navigate('Dashboard');
-        }, 5000);
-      } catch (error) {
-        // Show alert if server request fails
-        Alert.alert('Server Error', 'Unable to reach the server. Please try again later.');
-      } finally {
-        // Close RBSheet
-        setIsLoading(false);
-      }
-    } else {
-      Alert.alert('Invalid Form', 'Please correct the highlighted errors');
+    if (!isEmailValid || !isPasswordValid) {
+      return;
+    }
+    else{
+      navigation.navigate("Dashboard");
     }
   };
 

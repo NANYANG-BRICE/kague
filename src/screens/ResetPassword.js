@@ -5,48 +5,70 @@ import {
   View,
   TouchableOpacity,
   Text,
+  Alert,
   TextInput,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function ResetPassword() {
   const navigation = useNavigation();
   const [form, setForm] = useState({
-    info: '',
+    email: '',
   });
   const [errors, setErrors] = useState({
-    info: '',
+    email: '',
   });
 
-  // Fonction de validation de l'information
-  const validateInfo = (info) => {
-    if (!info) {
-      return 'Info is required';
+
+  const validateEmail = (email) => {
+    if (!email) {
+      setErrors(prevState => ({ ...prevState, email: 'Email is required' }));
+      return false;
     }
-    if (info.length < 9) {
-      return 'Info must be at least 9 characters long';
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setErrors(prevState => ({ ...prevState, email: 'Invalid email format' }));
+      return false;
     }
-    return '';
+    setErrors(prevState => ({ ...prevState, email: '' }));
+    return true;
   };
 
-  // Fonction de gestion de la saisie de champ
-  const handleInputChange = (value) => {
-    const error = validateInfo(value);
-    setForm({ ...form, info: value });
-    setErrors({ ...errors, info: error });
+  const handleEmailChange = (email) => {
+    setForm({ ...form, email });
+    validateEmail(email);
   };
 
-  // Fonction de gestion de la soumission du formulaire
-  const handleSubmit = () => {
-    const error = validateInfo(form.info);
-    if (error) {
-      // Afficher le message d'erreur si le champ n'est pas valide
-      setErrors({ ...errors, info: error });
-    } else {
-      // Soumettre le formulaire ou effectuer d'autres actions
-      navigation.navigate('Login');
+  const handleSubmit = async () => {
+    const isValid = validateEmail(form.email);
+    if (isValid) {
+      try {
+        console.log(form.email);
+        const response = await fetch("http://localhost:3000/api/v1/users/reset", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: form.email,
+          }),
+        });
+
+        const data = await response.json(); // Convert response to JSON
+        const user = data.user; // Extract user object from response
+        await AsyncStorage.setItem('emailsession', JSON.stringify(user.email));
+        console.log(user); // Now you have the user object
+        navigation.navigate('OPT');
+
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    else {
+      setErrors({ ...errors, email: error });
     }
   };
 
@@ -68,15 +90,17 @@ export default function ResetPassword() {
         <KeyboardAwareScrollView>
           <View style={styles.form}>
             <View style={styles.input}>
-              <Text style={styles.inputLabel}>Email address -- or -- Phone number. </Text>
-
-              <TextInput
-                onChangeText={handleInputChange}
-                placeholder="e.g. johndoe"
-                placeholderTextColor="#6b7280"
-                style={styles.inputControl}
-                value={form.info} />
-              {!!errors.info && <Text style={styles.errorText}>{errors.info}</Text>}
+              <View style={styles.input}>
+                <Text style={styles.inputLabel}>Email address. </Text>
+                <TextInput
+                  onChangeText={handleEmailChange}
+                  placeholder="e.g. johndoe"
+                  placeholderTextColor="#6b7280"
+                  style={styles.inputControl}
+                  value={form.email}
+                />
+                {!!errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+              </View>
             </View>
 
             <View style={styles.formAction}>
@@ -143,7 +167,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   formAction: {
-    marginVertical: 24,
+    marginVertical: 0,
   },
   formLink: {
     fontSize: 15,

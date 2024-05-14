@@ -11,6 +11,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import FeatherIcon from 'react-native-vector-icons/Feather';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+import * as ImagePicker from 'react-native-image-picker';
 
 export default function Register() {
   const navigation = useNavigation();
@@ -20,6 +21,7 @@ export default function Register() {
     password: '',
     phoneNumber: '',
     fileUpload: '',
+    photo: '',
   });
   const [errors, setErrors] = useState({
     fullname: '',
@@ -27,9 +29,9 @@ export default function Register() {
     password: '',
     phoneNumber: '',
     fileUpload: '',
+    photo: '',
   });
 
-  // Fonction de validation du fullname
   const validateFullname = (fullname) => {
     let errorMessage = '';
     if (!fullname) {
@@ -40,7 +42,6 @@ export default function Register() {
     setErrors((prevErrors) => ({ ...prevErrors, fullname: errorMessage }));
   };
 
-  // Fonction de validation de l'email
   const validateEmail = (email) => {
     let errorMessage = '';
     if (!email) {
@@ -51,7 +52,6 @@ export default function Register() {
     setErrors((prevErrors) => ({ ...prevErrors, email: errorMessage }));
   };
 
-  // Fonction de validation du mot de passe
   const validatePassword = (password) => {
     let errorMessage = '';
     if (!password) {
@@ -62,36 +62,42 @@ export default function Register() {
     setErrors((prevErrors) => ({ ...prevErrors, password: errorMessage }));
   };
 
-  // Fonction de validation du numéro de téléphone
   const validatePhoneNumber = (phoneNumber) => {
+    let errorMessage = '';
     if (!phoneNumber) {
-      setErrors((prevState) => ({ ...prevState, phoneNumber: 'Phone number is required' }));
-      return false;
+      errorMessage = 'Phone number is required';
+    } else if (!/^\d+$/.test(phoneNumber)) {
+      errorMessage = 'Phone number must contain only digits';
+    } else if (phoneNumber.length !== 12) {
+      errorMessage = 'Phone number must be 12 digits long';
     }
-    if (!/^\d+$/.test(phoneNumber)) {
-      setErrors((prevState) => ({ ...prevState, phoneNumber: 'Phone number must contain only digits' }));
-      return false;
-    }
-    if (phoneNumber.length !== 12) {
-      setErrors((prevState) => ({ ...prevState, phoneNumber: 'Phone number must be 12 digits long' }));
-      return false;
-    }
-    setErrors((prevState) => ({ ...prevState, phoneNumber: '' }));
-    return true;
+    setErrors((prevErrors) => ({ ...prevErrors, phoneNumber: errorMessage }));
   };
 
-
-  // Fonction de validation du fichier upload
   const validateFileUpload = (fileUpload) => {
     let errorMessage = '';
     if (!fileUpload) {
       errorMessage = 'File upload is required';
+    } else if (fileUpload.size > 3 * 1024 * 1024) { // 3MB max size
+      errorMessage = 'File size must be less than 3MB';
+    } else if (!/\.(pdf)$/i.test(fileUpload.name)) { // accept only pdf files
+      errorMessage = 'File must be in PDF format';
     }
-    // Ajoutez d'autres validations si nécessaire, par exemple, la taille du fichier et le type de fichier
     setErrors((prevErrors) => ({ ...prevErrors, fileUpload: errorMessage }));
   };
 
-  // Fonction de gestion de la saisie de champ
+  const validatePhoto = (photo) => {
+    let errorMessage = '';
+    if (!photo) {
+      errorMessage = 'Photo is required';
+    } else if (photo.size > 5 * 1024 * 1024) { // 5MB max size
+      errorMessage = 'Photo size must be less than 5MB';
+    } else if (!/\.(png|jpg|jpeg)$/i.test(photo.name)) { // accept only png, jpg, jpeg files
+      errorMessage = 'Photo must be in PNG, JPG, or JPEG format';
+    }
+    setErrors((prevErrors) => ({ ...prevErrors, photo: errorMessage }));
+  };
+
   const handleInputChange = (name, value) => {
     switch (name) {
       case 'fullname':
@@ -109,35 +115,48 @@ export default function Register() {
       case 'fileUpload':
         validateFileUpload(value);
         break;
+      case 'photo':
+        validatePhoto(value);
+        break;
       default:
         break;
     }
     setForm({ ...form, [name]: value });
   };
 
-  /// Fonction de gestion de la soumission du formulaire
+  const handlePhotoUpload = () => {
+    ImagePicker.launchImageLibrary({ mediaType: 'photo', maxWidth: 300, maxHeight: 300, quality: 1 }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.error) {
+        console.log('ImagePicker Error: ', response.error);
+      } else if (response.customButton) {
+        console.log('User tapped custom button: ', response.customButton);
+      } else {
+        const photo = response.assets[0];
+        handleInputChange('photo', { name: photo.fileName, size: photo.fileSize });
+        setForm({ ...form, photo: photo.uri });
+      }
+    });
+  };
+
   const handleSubmit = () => {
-    // Validation de tous les champs
     validateFullname(form.fullname);
     validateEmail(form.email);
     validatePassword(form.password);
     validatePhoneNumber(form.phoneNumber);
     validateFileUpload(form.fileUpload);
+    validatePhoto(form.photo);
 
-    // Vérification s'il y a des erreurs
     if (
       Object.values(errors).every((error) => error === '') &&
       Object.values(form).every((value) => value !== '')
     ) {
-      // Soumettre le formulaire ou effectuer d'autres actions
-      // Par exemple, envoyer les données au serveur
       navigation.navigate('Login');
     } else {
-      // Afficher un message d'erreur
       Alert.alert('Invalid Form', 'Please correct the highlighted errors');
     }
   };
-
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F4EFF3' }}>
@@ -209,9 +228,18 @@ export default function Register() {
             <View style={styles.input}>
               <Text style={styles.inputLabel}>Curriculum Vitae</Text>
               <TouchableOpacity style={styles.button}>
-                <Text style={styles.buttonText}>--- Click to select cv into your phone --- </Text>
+                <Text style={styles.buttonText}>--- Click to select CV from your phone --- </Text>
               </TouchableOpacity>
               {!!errors.fileUpload && <Text style={styles.errorText}>{errors.fileUpload}</Text>}
+            </View>
+
+            <View style={styles.input}>
+              <Text style={styles.inputLabel}>Profile Photo</Text>
+              <TouchableOpacity style={styles.button} onPress={handlePhotoUpload}>
+                <Text style={styles.buttonText}>--- Select photo from your phone --- </Text>
+              </TouchableOpacity>
+              {!!errors.photo && <Text style={styles.errorText}>{errors.photo}</Text>}
+              {form.photo ? <Image source={{ uri: form.photo }} style={styles.imagePreview} /> : null}
             </View>
 
             <View style={styles.formAction}>
@@ -223,20 +251,6 @@ export default function Register() {
                 </View>
               </TouchableOpacity>
             </View>
-
-            <Text style={styles.formFooter}>
-              By clicking "Sign up", you agree to our
-              <Text style={{ color: '#45464E', fontWeight: '600' }}>
-                {' '}
-                Terms & Conditions{' '}
-              </Text>
-              and
-              <Text style={{ color: '#45464E', fontWeight: '600' }}>
-                {' '}
-                Privacy Policy
-              </Text>
-              .
-            </Text>
           </View>
         </KeyboardAwareScrollView>
       </View>
@@ -256,7 +270,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   backBtn: {
-    marginTop: 16,
     width: 40,
     height: 40,
     borderRadius: 9999,
@@ -339,5 +352,10 @@ const styles = StyleSheet.create({
   errorText: {
     color: 'red',
     marginTop: 4,
+  },
+  imagePreview: {
+    width: 100,
+    height: 100,
+    marginTop: 10,
   },
 });
